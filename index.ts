@@ -42,17 +42,24 @@ interface GitHubProfile {
 }
 
 // ----------------- CORS -----------------
+
 const allowedOrigins = ["http://localhost:3000", "https://bildare.vercel.app"];
+
 app.use(
   cors({
     origin: function (origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
-      return callback(new Error("Not allowed by CORS"));
+      if (!origin) return callback(null, true); // allow non-browser requests
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      callback(new Error("Not allowed by CORS"));
     },
     credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 
+// Handle OPTIONS preflight requests
+app.options("*", cors({ origin: allowedOrigins, credentials: true }));
 // ----------------- Session -----------------
 const isProduction = process.env.NODE_ENV === "production";
 app.set("trust proxy", 1);
@@ -882,7 +889,9 @@ router.post("/analytics", async (req: Request, res: Response) => {
 });
 
 // ----------------- Start Server -----------------
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
+
 
 export default router;
