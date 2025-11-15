@@ -1,6 +1,6 @@
 // src/index.ts
 import express, { Request, Response, NextFunction, Router } from "express";
-import { PrismaClient, User } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import nodemailer from "nodemailer";
