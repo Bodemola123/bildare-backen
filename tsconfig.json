@@ -3,7 +3,7 @@
     "sourceMap": true,
     "outDir": "dist",
     "strict": true,
-    "lib": ["es2019", "dom"],
+    "lib": ["esnext"],
     "esModuleInterop": true,
     "module": "commonjs",
     "target": "es2019",
