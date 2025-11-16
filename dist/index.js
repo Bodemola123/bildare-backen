@@ -737,6 +737,10 @@ app.post("/analytics", async (req, res) => {
 app.get("/health", async (req, res) => {
     res.send("Ok in good health");
 });
+app.all("*", (req, res) => {
+    console.log("Route hit:", req.method, req.url);
+    res.status(404).send("Not Found");
+});
 // ----------------- Start Server -----------------
 // All your routes
 const PORT = process.env.PORT || 5000;
