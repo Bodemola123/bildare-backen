@@ -2,11 +2,12 @@
   "name": "bildare",
   "version": "1.0.0",
   "description": "",
-  "main": "index.ts",
+  "main": "dist/index.js",
 "scripts": {
   "build": "tsc",
   "start": "node dist/index.js",
-  "dev": "nodemon --exec ts-node index.ts"
+  "dev": "nodemon --exec ts-node index.ts",
+  "postinstall": "tsc"
 }
 
 ,

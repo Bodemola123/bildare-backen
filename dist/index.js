@@ -1,43 +1,10 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 // src/index.ts
-const express_1 = __importStar(require("express"));
+const express_1 = __importDefault(require("express"));
 const client_1 = require("@prisma/client");
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
@@ -50,19 +17,24 @@ const passport_github2_1 = require("passport-github2");
 const node_fetch_1 = __importDefault(require("node-fetch"));
 const app = (0, express_1.default)();
 const prisma = new client_1.PrismaClient();
-const router = (0, express_1.Router)();
 app.use(express_1.default.json());
 app.use(express_1.default.urlencoded({ extended: true }));
 // ----------------- CORS -----------------
 const allowedOrigins = ["http://localhost:3000", "https://bildare.vercel.app"];
 app.use((0, cors_1.default)({
     origin: function (origin, callback) {
-        if (!origin || allowedOrigins.includes(origin))
+        if (!origin)
+            return callback(null, true); // allow non-browser requests
+        if (allowedOrigins.includes(origin))
             return callback(null, true);
-        return callback(new Error("Not allowed by CORS"));
+        callback(new Error("Not allowed by CORS"));
     },
     credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
 }));
+// Handle OPTIONS preflight requests
+app.options("*", (0, cors_1.default)({ origin: allowedOrigins, credentials: true }));
 // ----------------- Session -----------------
 const isProduction = process.env.NODE_ENV === "production";
 app.set("trust proxy", 1);
@@ -212,7 +184,7 @@ passport_1.default.use(new passport_github2_1.Strategy({
     }
 }));
 // -----------------  Routes -----------------
-router.post("/signup", async (req, res) => {
+app.post("/signup", async (req, res) => {
     try {
         const { email, password } = req.body;
         if (!email || !password)
@@ -247,7 +219,7 @@ router.post("/signup", async (req, res) => {
     }
 });
 // ----------------- 🔁 Resend OTP -----------------
-router.post("/resend-otp", async (req, res) => {
+app.post("/resend-otp", async (req, res) => {
     try {
         const { email } = req.body;
         if (!email)
@@ -277,7 +249,7 @@ router.post("/resend-otp", async (req, res) => {
     }
 });
 // ----------------- 2️⃣ Verify OTP -----------------
-router.post("/verify-otp", async (req, res) => {
+app.post("/verify-otp", async (req, res) => {
     try {
         const { email, otp } = req.body;
         if (!email || !otp)
@@ -309,7 +281,7 @@ router.post("/verify-otp", async (req, res) => {
     }
 });
 // ----------------- 3️⃣ Complete Profile -----------------
-router.post("/complete-profile", async (req, res) => {
+app.post("/complete-profile", async (req, res) => {
     var _a, _b;
     try {
         const { email, username, role, region, interests } = req.body;
@@ -360,7 +332,7 @@ router.post("/complete-profile", async (req, res) => {
     }
 });
 // ----------------- 4️⃣ Login -----------------
-router.post("/login", async (req, res) => {
+app.post("/login", async (req, res) => {
     try {
         const { email, password } = req.body;
         if (!email || !password)
@@ -404,7 +376,7 @@ router.post("/login", async (req, res) => {
     }
 });
 // ----------------- /me -----------------
-router.get("/me", (req, res) => {
+app.get("/me", (req, res) => {
     const sessionUser = req.session.user;
     if (!sessionUser)
         return res.status(401).json({ error: "Not authenticated" });
@@ -412,7 +384,7 @@ router.get("/me", (req, res) => {
     res.json({ id, email, username, interests, accessToken, refreshToken });
 });
 // ----------------- Logout -----------------
-router.post("/logout", (req, res) => {
+app.post("/logout", (req, res) => {
     req.session.destroy(err => {
         if (err) {
             console.error("Failed to destroy session:", err);
@@ -423,7 +395,7 @@ router.post("/logout", (req, res) => {
     });
 });
 // ----------------- Protected /profile -----------------
-router.get("/profile", async (req, res) => {
+app.get("/profile", async (req, res) => {
     try {
         if (!req.session.user)
             return res.status(401).json({ error: "Not authenticated" });
@@ -438,7 +410,7 @@ router.get("/profile", async (req, res) => {
     }
 });
 // ----------------- Refresh Access Token -----------------
-router.post("/token", async (req, res) => {
+app.post("/token", async (req, res) => {
     var _a;
     try {
         const sessionToken = (_a = req.session.user) === null || _a === void 0 ? void 0 : _a.refreshToken;
@@ -466,7 +438,7 @@ router.post("/token", async (req, res) => {
     }
 });
 // ----------------- Request Password Reset -----------------
-router.post("/request-password-reset", async (req, res) => {
+app.post("/request-password-reset", async (req, res) => {
     try {
         const { email } = req.body;
         if (!email)
@@ -494,7 +466,7 @@ router.post("/request-password-reset", async (req, res) => {
     }
 });
 // ----------------- Verify Reset Token -----------------
-router.post("/verify-reset-token", async (req, res) => {
+app.post("/verify-reset-token", async (req, res) => {
     try {
         const { email, token } = req.body;
         if (!email || !token)
@@ -513,7 +485,7 @@ router.post("/verify-reset-token", async (req, res) => {
     }
 });
 // ----------------- Reset Password -----------------
-router.post("/reset-password", async (req, res) => {
+app.post("/reset-password", async (req, res) => {
     try {
         const { email, token, newPassword } = req.body;
         if (!email || !token || !newPassword)
@@ -541,7 +513,7 @@ router.post("/reset-password", async (req, res) => {
     }
 });
 // ----------------- Fetch All Users -----------------
-router.get("/users", async (_req, res) => {
+app.get("/users", async (_req, res) => {
     try {
         const users = await prisma.user.findMany({
             select: {
@@ -560,7 +532,7 @@ router.get("/users", async (_req, res) => {
     }
 });
 // ----------------- Delete User -----------------
-router.delete("/users", async (req, res) => {
+app.delete("/users", async (req, res) => {
     try {
         const { id } = req.body;
         if (!id)
@@ -574,7 +546,7 @@ router.delete("/users", async (req, res) => {
     }
 });
 // ----------------- /active-users -----------------
-// router.get("/active-users", (req: Request, res: Response) => {
+// app.get("/active-users", (req: Request, res: Response) => {
 //   const store = req.sessionStore;
 //   if (!store) {
 //     return res.status(500).json({ error: "Session store not found" });
@@ -606,8 +578,8 @@ router.delete("/users", async (req, res) => {
 //   );
 // });
 // ----------------- Google OAuth -----------------
-router.get("/auth/google", passport_1.default.authenticate("google", { scope: ["profile", "email"] }));
-router.get("/auth/google/callback", passport_1.default.authenticate("google", { failureRedirect: "/auth", session: false }), async (req, res) => {
+app.get("/auth/google", passport_1.default.authenticate("google", { scope: ["profile", "email"] }));
+app.get("/auth/google/callback", passport_1.default.authenticate("google", { failureRedirect: "/auth", session: false }), async (req, res) => {
     try {
         const userData = req.user;
         // Upsert user in DB
@@ -641,8 +613,8 @@ router.get("/auth/google/callback", passport_1.default.authenticate("google", { 
     }
 });
 // ----------------- GitHub OAuth -----------------
-router.get("/auth/github", passport_1.default.authenticate("github"));
-router.get("/auth/github/callback", passport_1.default.authenticate("github", { failureRedirect: "/auth", session: false }), async (req, res) => {
+app.get("/auth/github", passport_1.default.authenticate("github"));
+app.get("/auth/github/callback", passport_1.default.authenticate("github", { failureRedirect: "/auth", session: false }), async (req, res) => {
     try {
         const userData = req.user;
         // Upsert user in DB
@@ -676,7 +648,7 @@ router.get("/auth/github/callback", passport_1.default.authenticate("github", { 
     }
 });
 // ----------------- Contact form -----------------
-router.post("/contact", async (req, res) => {
+app.post("/contact", async (req, res) => {
     try {
         const { name, email, subject, message } = req.body;
         if (!name || !email || !subject || !message) {
@@ -723,11 +695,11 @@ router.post("/contact", async (req, res) => {
     }
 });
 // ----------------- Root -----------------
-router.get("/", (_req, res) => {
+app.get("/", (_req, res) => {
     res.send("🚀 Bildare backend is running!");
 });
 // ----------------- GA Proxy -----------------
-router.post("/analytics", async (req, res) => {
+app.post("/analytics", async (req, res) => {
     var _a;
     try {
         const { user_id, user_name, events, page_path } = req.body;
@@ -762,8 +734,11 @@ router.post("/analytics", async (req, res) => {
         res.status(500).json({ success: false, error: err.message });
     }
 });
+app.get("/health", async (req, res) => {
+    res.send("Ok in good health");
+});
 // ----------------- Start Server -----------------
+// All your routes
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
-exports.default = router;
 //# sourceMappingURL=index.js.map

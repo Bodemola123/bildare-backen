@@ -1,5 +1,5 @@
 // src/index.ts
-import express, { Request, Response, NextFunction, Router } from "express";
+import express, { Request, Response, NextFunction } from "express";
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
@@ -15,7 +15,6 @@ import fetch from "node-fetch";
 
 const app = express();
 const prisma = new PrismaClient();
-const router = Router();
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -248,7 +247,7 @@ passport.use(
 );
 
 // -----------------  Routes -----------------
-router.post("/signup", async (req: Request, res: Response) => {
+app.post("/signup", async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
     if (!email || !password)
@@ -288,7 +287,7 @@ await prisma.user.create({
 });
 
 // ----------------- 🔁 Resend OTP -----------------
-router.post("/resend-otp", async (req: Request, res: Response) => {
+app.post("/resend-otp", async (req: Request, res: Response) => {
   try {
     const { email } = req.body;
     if (!email) return res.status(400).json({ error: "Email is required" });
@@ -321,7 +320,7 @@ await prisma.user.update({
 });
 
 // ----------------- 2️⃣ Verify OTP -----------------
-router.post("/verify-otp", async (req: Request, res: Response) => {
+app.post("/verify-otp", async (req: Request, res: Response) => {
   try {
     const { email, otp } = req.body;
     if (!email || !otp)
@@ -356,7 +355,7 @@ if (user.otp !== otp) return res.status(400).json({ error: "Invalid OTP" });
 });
 
 // ----------------- 3️⃣ Complete Profile -----------------
-router.post("/complete-profile", async (req: Request, res: Response) => {
+app.post("/complete-profile", async (req: Request, res: Response) => {
   try {
     const { email, username, role, region, interests } = req.body;
 
@@ -412,7 +411,7 @@ router.post("/complete-profile", async (req: Request, res: Response) => {
 
 
 // ----------------- 4️⃣ Login -----------------
-router.post("/login", async (req: Request, res: Response) => {
+app.post("/login", async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
     if (!email || !password)
@@ -460,7 +459,7 @@ router.post("/login", async (req: Request, res: Response) => {
 });
 
 // ----------------- /me -----------------
-router.get("/me", (req: Request, res: Response) => {
+app.get("/me", (req: Request, res: Response) => {
   const sessionUser = req.session.user;
   if (!sessionUser) return res.status(401).json({ error: "Not authenticated" });
 
@@ -469,7 +468,7 @@ router.get("/me", (req: Request, res: Response) => {
 });
 
 // ----------------- Logout -----------------
-router.post("/logout", (req: Request, res: Response) => {
+app.post("/logout", (req: Request, res: Response) => {
   req.session.destroy(err => {
     if (err) {
       console.error("Failed to destroy session:", err);
@@ -481,7 +480,7 @@ router.post("/logout", (req: Request, res: Response) => {
 });
 
 // ----------------- Protected /profile -----------------
-router.get("/profile", async (req: Request, res: Response) => {
+app.get("/profile", async (req: Request, res: Response) => {
   try {
     if (!req.session.user) return res.status(401).json({ error: "Not authenticated" });
 
@@ -496,7 +495,7 @@ router.get("/profile", async (req: Request, res: Response) => {
 });
 
 // ----------------- Refresh Access Token -----------------
-router.post("/token", async (req: Request, res: Response) => {
+app.post("/token", async (req: Request, res: Response) => {
   try {
     const sessionToken = req.session.user?.refreshToken;
     const bodyToken = req.body.refreshToken;
@@ -523,7 +522,7 @@ router.post("/token", async (req: Request, res: Response) => {
 });
 
 // ----------------- Request Password Reset -----------------
-router.post("/request-password-reset", async (req: Request, res: Response) => {
+app.post("/request-password-reset", async (req: Request, res: Response) => {
   try {
     const { email } = req.body;
     if (!email) return res.status(400).json({ error: "Email is required" });
@@ -554,7 +553,7 @@ router.post("/request-password-reset", async (req: Request, res: Response) => {
 });
 
 // ----------------- Verify Reset Token -----------------
-router.post("/verify-reset-token", async (req: Request, res: Response) => {
+app.post("/verify-reset-token", async (req: Request, res: Response) => {
   try {
     const { email, token } = req.body;
     if (!email || !token) return res.status(400).json({ error: "Email and token are required" });
@@ -574,7 +573,7 @@ router.post("/verify-reset-token", async (req: Request, res: Response) => {
 });
 
 // ----------------- Reset Password -----------------
-router.post("/reset-password", async (req: Request, res: Response) => {
+app.post("/reset-password", async (req: Request, res: Response) => {
   try {
     const { email, token, newPassword } = req.body;
     if (!email || !token || !newPassword) return res.status(400).json({ error: "All fields are required" });
@@ -605,7 +604,7 @@ router.post("/reset-password", async (req: Request, res: Response) => {
 });
 
 // ----------------- Fetch All Users -----------------
-router.get("/users", async (_req: Request, res: Response) => {
+app.get("/users", async (_req: Request, res: Response) => {
   try {
     const users = await prisma.user.findMany({
       select: {
@@ -625,7 +624,7 @@ router.get("/users", async (_req: Request, res: Response) => {
 });
 
 // ----------------- Delete User -----------------
-router.delete("/users", async (req: Request, res: Response) => {
+app.delete("/users", async (req: Request, res: Response) => {
   try {
     const { id } = req.body;
     if (!id) return res.status(400).json({ error: "User ID is required" });
@@ -639,7 +638,7 @@ router.delete("/users", async (req: Request, res: Response) => {
 });
 
 // ----------------- /active-users -----------------
-// router.get("/active-users", (req: Request, res: Response) => {
+// app.get("/active-users", (req: Request, res: Response) => {
 //   const store = req.sessionStore;
 
 //   if (!store) {
@@ -677,12 +676,12 @@ router.delete("/users", async (req: Request, res: Response) => {
 // });
 
 // ----------------- Google OAuth -----------------
-router.get(
+app.get(
   "/auth/google",
   passport.authenticate("google", { scope: ["profile", "email"] })
 );
 
-router.get(
+app.get(
   "/auth/google/callback",
   passport.authenticate("google", { failureRedirect: "/auth", session: false }),
   async (req: Request, res: Response) => {
@@ -730,9 +729,9 @@ router.get(
 );
 
 // ----------------- GitHub OAuth -----------------
-router.get("/auth/github", passport.authenticate("github"));
+app.get("/auth/github", passport.authenticate("github"));
 
-router.get(
+app.get(
   "/auth/github/callback",
   passport.authenticate("github", { failureRedirect: "/auth", session: false }),
   async (req: Request, res: Response) => {
@@ -780,7 +779,7 @@ router.get(
 );
 
 // ----------------- Contact form -----------------
-router.post("/contact", async (req: Request, res: Response) => {
+app.post("/contact", async (req: Request, res: Response) => {
   try {
     const { name, email, subject, message } = req.body as {
       name?: string;
@@ -836,12 +835,12 @@ router.post("/contact", async (req: Request, res: Response) => {
 });
 
 // ----------------- Root -----------------
-router.get("/", (_req: Request, res: Response) => {
+app.get("/", (_req: Request, res: Response) => {
   res.send("🚀 Bildare backend is running!");
 });
 
 // ----------------- GA Proxy -----------------
-router.post("/analytics", async (req: Request, res: Response) => {
+app.post("/analytics", async (req: Request, res: Response) => {
   try {
     const { user_id, user_name, events, page_path } = req.body as {
       user_id?: string;
@@ -888,13 +887,18 @@ router.post("/analytics", async (req: Request, res: Response) => {
   }
 });
 
-app.get("/health", (req, res) => {
+app.get("/health", async (req:Request, res:Response) => {
   res.send("Ok in good health");
 });
 
+app.all("*", (req, res) => {
+  console.log("Route hit:", req.method, req.url);
+  res.status(404).send("Not Found");
+});
+
+
 // ----------------- Start Server -----------------
 // All your routes
-app.use("/", router);
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
 
